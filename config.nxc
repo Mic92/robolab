@@ -1,0 +1,41 @@
+// inputs
+#define INPUT_LIGHT   IN_3
+#define INPUT_PRESS_L IN_4
+#define INPUT_PRESS_R IN_1
+#define INPUT_US      IN_2
+
+
+// outputs
+#define WHEEL_LEFT  (OUT_B)
+#define WHEEL_RIGHT (OUT_C)
+#define WHEELS      (OUT_BC)
+#define LED_OUT     (OUT_A)
+
+
+// sensors
+#define LIGHT       (Sensor (INPUT_LIGHT))
+#define IS_ON_LINE     (LIGHT < TRESHOLD)
+#define ISNOT_ON_LINE  (LIGHT > TRESHOLD)
+
+#define PRESS_LEFT  (Sensor (INPUT_PRESS_L))
+#define PRESS_RIGHT (Sensor (INPUT_PRESS_R))
+#define PRESS       (Sensor (INPUT_PRESS_L) || Sensor (INPUT_PRESS_R))
+
+
+// button
+#define BUTTON_LEFT   (ButtonPressed(BTNLEFT))
+#define BUTTON_CENTER (ButtonPressed(BTNCENTER))
+#define BUTTON_RIGHT  (ButtonPressed(BTNRIGHT))
+
+
+// constants
+#define SEC_PER_CM     54
+#define ANGLE_PER_CM    21      // (360 / 17)
+// carefully chosen, with a cube
+#define STEER_ZERORANGE 15
+#define STEER_LIMIT     18
+#define STEER_RATIO    -1
+
+// distance between both wheels
+// measured from the middle of each
+#define WHEEL_BASE 11.5 // cm

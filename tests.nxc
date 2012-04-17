@@ -1,0 +1,97 @@
+void testButtons() {
+    TextOut(0, LCD_LINE1, "Test - Knoepfe");
+    while (ButtonPressed(BTNRIGHT));
+    TextOut(0, LCD_LINE2, "Rechten Knopf!");
+    until (ButtonPressed(BTNRIGHT));
+
+    TextOut(0, LCD_LINE3, "Mittleren Knopf!");
+    until (ButtonPressed(BTNCENTER));
+
+    TextOut(0, LCD_LINE4, "Linken Knopf!");
+    until (ButtonPressed(BTNLEFT));
+    ClearScreen();
+}
+
+void testEngine() {
+    TextOut(0, LCD_LINE1, "Test - Motor");
+    TextOut(0,LCD_LINE2, "Motoren starten.");
+    Wait(SEC_2);
+
+    OnFwd(WHEELS, 100);
+    Wait(SEC_5);
+
+    TextOut(0, LCD_LINE3, "Motoren stoppen..");
+    Off(WHEELS);
+    Wait(SEC_2);
+    ClearScreen();
+}
+
+void testLED() {
+    TextOut(0, LCD_LINE1, "Test - LED");
+    TextOut(0,LCD_LINE2, "LED blinkt 3x");
+    repeat(3) {
+        OnFwd(LED_OUT, 100);
+        Wait(SEC_5);
+        Off(LED_OUT);
+    }
+    ClearScreen();
+}
+
+void testSensors() {
+    TextOut(0, LCD_LINE1, "Test - Sensors");
+    // Sensoren
+    SetSensorTouch(INPUT_PRESS_L);
+    SetSensorTouch(INPUT_PRESS_R);
+    SetSensorLight(INPUT_LIGHT);
+
+    while (PRESS_LEFT);
+    TextOut(0, LCD_LINE2, "Linker Sensor!");
+    until (PRESS_LEFT);
+
+    TextOut(0, LCD_LINE3, "Rechter Sensor!");
+    until (PRESS_RIGHT);
+
+    TextOut(0, LCD_LINE4, FormatNum("Lichtsensor: %d", LIGHT));
+    Wait(SEC_2);
+
+    ClearScreen();
+}
+
+void testDistance() {
+    TextOut(0, LCD_LINE1, "Test - Distanz");
+    Wait(SEC_2);
+    int length = 13 * 4;//cm
+    TextOut(0, LCD_LINE2, FormatNum("Fahre %d cm", length));
+    driveDist(length);
+    ClearScreen();
+    Wait(SEC_2);
+}
+
+void testLengthPerRotation() {
+    TextOut(0, LCD_LINE1, "10 Umdrehungen");
+    RotateMotorEx(WHEELS, 100, 360 * 10, 0, true, true);
+}
+
+void testRotationCount() {
+    int time = SEC_10;
+
+    ResetRotationCount(WHEELS);
+    OnFwd(WHEELS, 100);
+    Wait(time);
+    long revolution = MotorRotationCount(WHEEL_LEFT);
+    float rpm = revolution / time * SEC_1;
+    Off(WHEELS);
+    TextOut(0, LCD_LINE2, FormatNum("RPM: %5.3f", rpm));
+    Wait(SEC_3);
+}
+
+void runTest() {
+    ClearScreen();
+    testButtons();
+    testEngine();
+    testLED();
+    testSensors();
+    testDistance();
+    //testLengthPerRotation();
+    //testRotationCount();
+}

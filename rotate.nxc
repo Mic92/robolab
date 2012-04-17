@@ -1,0 +1,56 @@
+void rotate(int side) {
+    if (DEBUG)
+        playDebug();
+    OnFwdReg(WHEEL_LEFT, 25 * side, OUT_REGMODE_SPEED);
+    OnFwdReg(WHEEL_RIGHT, -25 * side, OUT_REGMODE_SPEED);
+}
+
+void rotateAngle(int degree, int side, bool stopAfter = true) {
+    rotate(side);
+    Wait(SEC_PER_ANGLE * degree);
+
+    if (stopAfter) {
+        stopDrive();
+    }
+}
+
+bool rotateAngleDetect(int degree, int side, bool stopAfter = true) {
+    rotate(side);
+    long time0 = CurrentTick();
+    while ((CurrentTick() - time0) < (SEC_PER_ANGLE * degree)) {
+        if (IS_ON_LINE) {
+            stopDrive();
+            if (DEBUG)
+                NumOut(0, LCD_LINE1, STEER_ANGLE);
+
+            // nur wenn die Richtung der Kurve sich
+            // nicht geändert hat, lenken
+            if(lastSide == side) {
+                long time1 = CurrentTick();
+                float i = (time1 - time0) / 10;
+                if (i < STEER_ZERORANGE) {
+                    i = 0;
+                } else {
+                    i -= STEER_ZERORANGE;
+                }
+                STEER_ANGLE = i * STEER_RATIO * side;
+
+                if (STEER_ANGLE > STEER_LIMIT) {
+                    STEER_ANGLE = STEER_LIMIT;
+                }
+                if (STEER_ANGLE < -STEER_LIMIT) {
+                    STEER_ANGLE = -STEER_LIMIT;
+                }
+
+            } else {
+                STEER_ANGLE = 0;
+            }
+
+            return true;
+        }
+    }
+    if(stopAfter) {
+        stopDrive();
+    }
+    return false;
+}

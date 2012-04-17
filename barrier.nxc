@@ -1,0 +1,59 @@
+
+void surroundBarrier() {
+redo:
+    stopDrive();
+
+    driveDist(7, BACK);
+    rotateAngle(60, RIGHT);
+
+    drive(FORTH);
+    long time0 = CurrentTick();
+    while ((CurrentTick() - time0) < (SEC_PER_CM * 5)) {
+        if (PRESS)
+            goto redo;
+    }
+
+    stopDrive();
+
+    driveRound(RIGHT, 50, 20);
+    while (ISNOT_ON_LINE) {
+        if (PRESS) {
+            goto redo;
+        }
+    }
+
+    // Linie überfahren und in einem engen Kreis
+    // links herum wiederfinden.
+    driveDist(3, FORTH);
+    driveRound(LEFT, 40, 5);
+
+    long time1 = CurrentTick();
+    long innerWheel = 5;
+    while (ISNOT_ON_LINE) {
+        if (PRESS) {
+            goto redo;
+        }
+        if ((CurrentTick() - time1) > SEC_5) {
+            time1 = CurrentTick();
+            stopDrive();
+            innerWheel += 5;
+            driveRound(LEFT, 40, innerWheel);
+        }
+    }
+    // Linie erneut überfahren und links eindrehen
+    driveDist(4, FORTH);
+    rotateAngleDetect(360, LEFT);
+}
+
+task detectBarrier() {
+    while (true) {
+        if (PRESS) {
+            blinkLed();
+            StopTask(followLine);
+            surroundBarrier();
+            //StartTask(playRockyTheme);
+            StartTask(followLine);
+        }
+        Yield();
+    }
+}

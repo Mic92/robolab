@@ -1,0 +1,113 @@
+const int negative = -1; // workaround compiler incompetence
+enum direction { FORTH=1, BACK=negative };
+const int LEFT  = -1;
+const int RIGHT =  1;
+
+inline void drive(direction direct = FORTH, int steering = 0) {
+    OnFwdReg(WHEEL_LEFT, (40 + steering) * direct, OUT_REGMODE_SPEED);
+    OnFwdReg(WHEEL_RIGHT, (40 - steering) * direct, OUT_REGMODE_SPEED);
+}
+
+inline void stopDrive() {
+    Off(WHEELS);
+    Wait(MS_10);
+}
+
+inline void driveSteer(int steering = 0) {
+    OnFwdSync(WHEELS, 50, steering);
+}
+
+inline void driveDist(int centimeter, direction direct = FORTH) {
+    drive(direct, 0);
+
+    Wait(SEC_PER_CM * centimeter);
+
+    stopDrive();
+}
+
+bool driveDistDetect(int centimeter, direction direct = FORTH) {
+    int i;
+    drive(direct);
+
+    long time0 = CurrentTick ();
+    while (CurrentTick() - time0 < SEC_PER_CM * centimeter) {
+        if (IS_ON_LINE) {
+            stopDrive();
+            return true;
+        }
+    }
+    stopDrive();
+
+    return false;
+}
+
+inline void rotate(int side) {
+    OnFwdReg(WHEEL_LEFT, 30 * side, OUT_REGMODE_SPEED);
+    OnFwdReg(WHEEL_RIGHT, -30 * side, OUT_REGMODE_SPEED);
+}
+
+void rotateAngle(int degree, int side, bool stopAfter = true) {
+    rotate(side);
+    long time0 = CurrentTick();
+    NumOut(10, LCD_LINE5, SEC_PER_ANGLE * degree);
+    while((CurrentTick() - time0) < (SEC_PER_ANGLE * degree));
+
+    if (stopAfter) {
+        stopDrive();
+    }
+}
+
+bool rotateAngleDetect(int degree, int side, bool stopAfter = true) {
+    rotate(side);
+    long time0 = CurrentTick();
+    while ((CurrentTick() - time0) < (SEC_PER_ANGLE * degree)) {
+        if (IS_ON_LINE) {
+            stopDrive();
+
+            // nur wenn die Richtung der Kurve sich
+            // nicht geändert hat, lenken
+            if(lastSide == side) {
+                long time1 = CurrentTick();
+                float i = (time1 - time0) / 10;
+                if (i < STEER_ZERORANGE) {
+                    i = 0;
+                } else {
+                    i -= STEER_ZERORANGE;
+                }
+                STEER_ANGLE = i * STEER_RATIO * side;
+
+                if (STEER_ANGLE > STEER_LIMIT) {
+                    STEER_ANGLE = STEER_LIMIT;
+                }
+                if (STEER_ANGLE < -STEER_LIMIT) {
+                    STEER_ANGLE = -STEER_LIMIT;
+                }
+
+            } else {
+                STEER_ANGLE = 0;
+            }
+
+            return true;
+        }
+    }
+    if(stopAfter) {
+        stopDrive();
+    }
+    return false;
+}
+
+//TODO use radius instead
+void driveRound(int side = LEFT,
+                 int outerWheelPower = 30,
+                 int innerWheelPower = 10) {
+    int left, right;
+    if (side == RIGHT) {
+        left  = innerWheelPower;
+        right = outerWheelPower;
+    } else {
+        left  = outerWheelPower;
+        right = innerWheelPower;
+    }
+    OnFwdReg(WHEEL_LEFT, left, OUT_REGMODE_SPEED);
+    OnFwdReg(WHEEL_RIGHT, right, OUT_REGMODE_SPEED);
+}

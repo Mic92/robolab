@@ -1,0 +1,41 @@
+#define PlayH1  988
+#define PlayA1P 932
+#define PlayA1  880
+#define PlayG1P 831
+#define PlayG1  784
+#define PlayF1P 740
+#define PlayF1  698
+#define PlayE1  659
+#define PlayD1P 622
+#define PlayD1  587
+#define PlayC1P 554
+#define PlayC1  523
+
+#define PlayH2  1976
+#define PlayA2P 1865
+#define PlayA2  1760
+#define PlayG2P 1661
+#define PlayG2  1568
+#define PlayF2P 1480
+#define PlayF2  1397
+#define PlayE2  1319
+#define PlayD2P 1245
+#define PlayD2  1175
+#define PlayC2P 1109
+#define PlayC2  1047
+
+const int song[][] = {{PlayE1,250 },
+                      {PlayG1,420 },
+                      {PlayA1,1650},
+                      {PlayA1,200 },
+                      {PlayH1,450 },
+                      {PlayE1,1650}};
+
+task playRockyTheme () {
+    repeat(2) {
+        for (int i = 0; i < ArrayLen(song); i++) {
+            PlayTone(song[i][0], song[i][1]);
+            Wait(song[i][1] + 50);
+        }
+    }
+}

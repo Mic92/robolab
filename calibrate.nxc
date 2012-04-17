@@ -1,0 +1,124 @@
+float calibrateSecPerAngle() {
+    TextOut(0, LCD_LINE2, "Drehwinkel");
+    TextOut(0, LCD_LINE3, "beide Sensor druecken");
+
+    until (PRESS);
+    while (PRESS);
+    long time0 = CurrentTick();
+    rotate(LEFT);
+    until (PRESS);
+    long time1 = CurrentTick();
+    while (PRESS);
+    stopDrive();
+
+    ClearLine(LCD_LINE2);
+    ClearLine(LCD_LINE3);
+
+    return (time1 - time0) / 360;
+}
+
+int calibrateThreshold() {
+    TextOut(0,  LCD_LINE2, "Lichtsensor");
+    TextOut(10, LCD_LINE3, "Boden");
+    TextOut(10, LCD_LINE4, "links druecken");
+    until (PRESS_LEFT);
+    while (PRESS);
+    int white = LIGHT;
+    ClearLine(LCD_LINE3);
+    ClearLine(LCD_LINE4);
+
+    TextOut(10, LCD_LINE3, "Linie");
+    TextOut(10, LCD_LINE4, "rechts druecken");
+    until (PRESS_RIGHT);
+    while (PRESS);
+    int black = LIGHT;
+    ClearLine(LCD_LINE2);
+    ClearLine(LCD_LINE3);
+    ClearLine(LCD_LINE4);
+
+    return (black + white) / 2;
+}
+
+float calibrateSecPerCircle() {
+    TextOut(0, LCD_LINE2, "Kreiszeit");
+    TextOut(0, LCD_LINE3, "beide Sensor druecken");
+
+    until (PRESS);
+    while (PRESS);
+    long time0 = CurrentTick ();
+    driveRound(LEFT, 30, 7);
+    until (PRESS);
+    long time1 = CurrentTick ();
+    while (PRESS);
+
+    stopDrive();
+
+    ClearLine(LCD_LINE2);
+    ClearLine(LCD_LINE3);
+
+    return time1 - time0;
+}
+
+void calibrate() {
+    ClearScreen();
+    TextOut(0, LCD_LINE1, "Kalibration:");
+    TRESHOLD = calibrateThreshold();
+    TextOut(0, LCD_LINE2, "Drehwinkel");
+    SEC_PER_ANGLE = calibrateSecPerAngle();
+    SEC_PER_CIRCLE = calibrateSecPerCircle();
+    ClearScreen();
+
+    TextOut(0, LCD_LINE2, "Eingestellt auf");
+    TextOut(0, LCD_LINE3, "Lichtschwelle:");
+    NumOut(10, LCD_LINE4, TRESHOLD);
+    TextOut(0, LCD_LINE5, "sec pro Grad:");
+    NumOut(10, LCD_LINE6, SEC_PER_ANGLE);
+    TextOut(0, LCD_LINE7, "Kreis:");
+    NumOut(10, LCD_LINE8, SEC_PER_CIRCLE);
+    Wait(SEC_2);
+    ClearScreen();
+}
+
+bool loadCalibrationFromFile(string filename="calibration") {
+    string buffer;
+    byte file = fopen(filename, "r");
+    if (file == NULL) {
+        playError();
+        return false;
+    }
+
+    fgets(buffer, 10, file);
+    TRESHOLD = atol(buffer);
+    fgets(buffer, 10, file);
+    SEC_PER_ANGLE = atol(buffer);
+    fgets(buffer, 10, file);
+    SEC_PER_CIRCLE = atol(buffer);
+
+    fclose(file);
+
+    TextOut(5, LCD_LINE1, "Lade von Datei:");
+    TextOut(5, LCD_LINE2, FormatNum("Schwelle: %d", TRESHOLD));
+    TextOut(5, LCD_LINE3, FormatNum("sec/Grad: %5.3f", SEC_PER_ANGLE));
+    TextOut(5, LCD_LINE4, FormatNum("Kreiszeit: %5.3f", SEC_PER_CIRCLE));
+    Wait(SEC_2);
+    ClearScreen();
+    return true;
+}
+
+bool saveCalibrationToFile(string filename="calibration") {
+    DeleteFile(filename);
+    byte file = fopen(filename, "w");
+    if (file == NULL) {
+        playError();
+        return false;
+    }
+    fputs(NumToStr(TRESHOLD), file);
+    fputs("\n", file);
+    fputs(NumToStr(SEC_PER_ANGLE), file);
+    fputs("\n", file);
+    fputs(NumToStr(SEC_PER_CIRCLE), file);
+    fputs("\n", file);
+    fflush(file);
+    fclose(file);
+    return true;
+}

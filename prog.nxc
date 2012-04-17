@@ -1,0 +1,74 @@
+/*  _____            _
+ * |  __ \          | |
+ * | |__) |___   ___| | ___   _
+ * |  _  // _ \ / __| |/ / | | |
+ * | | \ \ (_) | (__|   <| |_| |
+ * |_|  \_\___/ \___|_|\_\\__, |
+ *                         __/ |
+ *                        |___/
+ * Rocky rocks, when the rest sucks.
+ */
+
+/* Globals */
+int lastSide = 1;
+int TRESHOLD;
+float STEER_ANGLE = 0;
+float SEC_PER_ANGLE;
+float SEC_PER_CIRCLE;
+
+/* Includes */
+#include "config.nxc"
+#include "logging.nxc"
+#include "drive.nxc"
+#include "calibrate.nxc"
+#include "followline.nxc"
+#include "song.nxc"
+#include "barrier.nxc"
+#include "tests.nxc"
+
+/* Application */
+task main () {
+    SetSensor(INPUT_PRESS_L, SENSOR_TOUCH);
+    SetSensor(INPUT_PRESS_R, SENSOR_TOUCH);
+    SetSensor(INPUT_LIGHT,   SENSOR_LIGHT);
+    SetSensorMode(INPUT_LIGHT, SENSOR_MODE_RAW);
+    SetSensorLight(INPUT_LIGHT);
+
+    while(true) {
+        //Main Menu
+        float volts = BatteryLevel() / 1000.0;
+        string bat_level = FormatNum("Batterie: %5.3fV", volts);
+        TextOut(0, LCD_LINE1, "---Menu---");
+        TextOut(0, LCD_LINE2, bat_level);
+        TextOut(0, LCD_LINE3, "<-: Kalibrierung");
+        TextOut(0, LCD_LINE4, "Mitte: Programm");
+        TextOut(0, LCD_LINE5, "->: Test");
+        while(true) {
+            if (BUTTON_RIGHT) {
+                ClearScreen();
+                runTest();
+                break;
+            } else if (BUTTON_LEFT) {
+                ClearScreen();
+
+                calibrate();
+                if (!saveCalibrationToFile()) {
+                    playError();
+                }
+                break;
+            } else if (BUTTON_CENTER) {
+                ClearScreen();
+                if (!loadCalibrationFromFile()) {
+                    calibrate();
+                    saveCalibrationToFile();
+                }
+
+                Precedes(followLine, detectBarrier, playRockyTheme);
+                StartTask(followLine);
+                ExitTo(detectBarrier);
+            }
+        }
+    }
+}
+
+

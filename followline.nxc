@@ -1,0 +1,242 @@
+int  lastCurveSide = 0;
+bool lastCurve = true;
+
+long time = 0, time1 = 0;
+
+bool searchAtPoint(bool smallAngleOnly = false) {
+    if (IS_ON_LINE) {
+        return true; // bereits auf der Linie
+    }
+
+    /*--- kleiner Winkel ---*/
+    // in 1. Richtung suchen
+    if (rotateAngleDetect(40, lastSide, false)) {
+        stopDrive();
+        return true;
+    }
+
+    // Ausgangsstellung
+    stopDrive();
+    rotateAngle(50, -lastSide, false);
+
+    // in 2. Richtung suchen
+    if (rotateAngleDetect(40, -lastSide, false)) {
+        //naechsten mal diese Richtung zu erst benutzen
+        lastSide *= -1;
+        stopDrive();
+        return true;
+    }
+
+    // Ausgangsstellung
+    if(smallAngleOnly) {
+        rotateAngle(50, lastSide);
+        return false;
+    }
+
+    /*--- grosser Winkel ---*/
+    // in 1. Richtung suchen
+    if (rotateAngleDetect(50, -lastSide, false)) {
+        lastSide *= -1;
+        stopDrive();
+        return true;
+    }
+    stopDrive();
+
+    // Ausgangsstellung
+    rotateAngle(100, lastSide, false);
+
+    // in 2. Richtung suchen
+    if (rotateAngleDetect(100, lastSide, true)) {
+        return true;
+    }
+
+    // Ausgangsstellung
+    rotateAngle(100, -lastSide);
+
+    return false;
+}
+
+bool searchCurve() {
+    lastCurve = true;
+
+    // zurück fahren
+    driveDist(10, BACK);
+
+    // erst links schauen, ob die letzte scharfe Kurve nicht links war
+    if(lastCurveSide != -1) {
+        rotateAngle(40, LEFT);
+
+        // fahre vorwärts und nach einer Linie suchen
+        if (driveDistDetect (10)) {
+            lastCurveSide = -1;
+            time = 0;
+            // Linie erkannt, überfahren und links drehen
+            driveDist(8, FORTH);
+            rotateAngle(90, LEFT);
+            //für den Fall einer Lücke fahr ein Stück zurück
+            if(!searchAtPoint()) {
+                driveDist(7, BACK);
+                searchAtPoint();
+            }
+            return true;
+        }
+
+        // keine Linie auf der linken Seite, zurück fahren
+        driveDist(10, BACK);
+
+        // vorrauschauen
+        rotateAngle(40, RIGHT);
+
+        // suche die Mitte der Linie
+        searchAtPoint();
+    } else {
+        lastCurveSide = 0;
+    }
+
+    // rechts schauen, ob die letzte scharfe Kurve nicht rechts war
+    if (lastCurveSide != 1) {
+        // rechts drehen
+        rotateAngle(40, RIGHT);
+
+        // fahre vorwärts und nach einer Linie suchen
+        if (driveDistDetect (10)) {
+            lastCurveSide = 1;
+            time = 0;
+            // Linie erkannt, überfahren und rechts drehen
+            driveDist(8);
+            rotateAngle(90, RIGHT);
+            //für den Fall einer Lücke fahr ein Stück zurück
+            if(!searchAtPoint()) {
+                driveDist(7, BACK);
+                searchAtPoint();
+            }
+            return true;
+        }
+
+        // keine Linie auf der rechten Seite, zurück fahren
+        driveDist(10, BACK);
+
+        // vorrauschauen
+        rotateAngle(40, LEFT);
+    } else {
+        lastCurveSide = 0; // nächtest Mal wieder rechts schauen
+    }
+
+    // keine scharfe Kurve entdeckt, fahre auf Ausgang zurück
+    driveDist(5);
+
+    return false;
+}
+
+bool searchGap() {
+    lastCurve = false;
+    time1 = 0;
+
+    driveDist(5, BACK);
+
+    // um 90° drehen um einen Kreis zu fahren
+    rotateAngle(90, LEFT);
+
+    // ein kleines Stück vorfahren
+    driveDist(3, FORTH);
+
+    // fahr einen Kreis umd den Begin der anderen Linie zu suchen
+    long first_time = CurrentTick();
+    driveRound(LEFT, 30, 7);
+    Wait(MS_600);
+
+    while (ISNOT_ON_LINE);
+    long diff = CurrentTick() - first_time;
+    if (diff > (SEC_PER_CIRCLE * 0.8)) {
+        // DOOMED, wieder auf eigene Linie -> größerer Kreis
+        playDebug();
+        driveRound(LEFT, 30, 12);
+        Wait(MS_600);
+        while (ISNOT_ON_LINE);
+    }
+
+    driveDist(3, FORTH);
+    return rotateAngleDetect(180, LEFT);
+}
+
+void searchLine() {
+    static bool testedSharp = false;
+    if (IS_ON_LINE) {
+        return;
+    }
+
+    if (searchAtPoint()) {
+        return;
+    }
+
+    // zuvor wurde eine scharfe Kurve gefunden,
+    if (lastCurve) {
+        if (!testedSharp) {
+            if (searchCurve()) {
+                return;
+            }
+
+            // doch keine scharfe Kurve :(
+            testedSharp = true;
+
+            // bevor wir fortfahren, fahr an das Ende der Linie zurück
+            return;
+        }
+
+        testedSharp = false;
+
+        if (searchGap()){
+            return;
+        }
+
+    } else { // als letzes wurde ein Lücke gefunden
+
+        if (searchGap()) {
+            return;
+        }
+
+        if (searchCurve()) {
+            return;
+        }
+    }
+
+    // nichts gefunden, fahr die Linie zurück für den Fall einer Sackgasse
+    rotateAngle(30, LEFT);
+    rotateAngleDetect(360, LEFT);
+}
+
+task followLine() {
+    long time0 = 0, diff;
+
+    while (true) {
+        searchLine();
+
+        ClearScreen();
+        NumOut(10, LCD_LINE1, STEER_ANGLE);
+        driveSteer(STEER_ANGLE);
+        time0 = CurrentTick();
+        while (IS_ON_LINE);
+
+        diff = CurrentTick() - time0;
+        if (lastCurveSide != 0) {
+            time += diff;
+            if (time > SEC_2) {
+                lastCurveSide = 0;
+                time = 0;
+                playInfo();
+            }
+        }
+        if (!lastCurve) {
+            time1 += diff;
+            if (time1 > SEC_2) {
+                lastCurve = 1;
+                time1 = 0;
+                playInfo();
+            }
+        }
+
+        Wait(SEC_PER_CM);
+
+        stopDrive();
+    }
+}

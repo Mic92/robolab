@@ -1,0 +1,26 @@
+inline void blinkLed(int time = 100) {
+    OnFwd(LED_OUT, time);
+    Wait(time);
+    Off(LED_OUT);
+}
+
+inline void blinkLedTwice(int time = 75) {
+    blinkLed(time);
+    blinkLed(time);
+}
+
+inline void playDebug() {
+    PlayTone(440, 500);
+}
+inline void playInfo()  {
+    PlayTone(440, 500);
+}
+inline void playError() {
+    PlayTone(440, 500);
+}
+
+void logDebug(string text) {
+    ClearLine(LCD_LINE6);
+    TextOut(0, LCD_LINE6, text);
+    Wait(MS_300);
+}
